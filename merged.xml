@@ -1,65 +1,70 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<ns0:beans xmlns:ns0="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="            http://www.springframework.org/schema/beans            http://www.springframework.org/schema/beans/spring-beans.xsd">
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans                            http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+    
+    <bean class="org.apache.ignite.configuration.IgniteConfiguration">
 
-    <ns0:bean class="org.apache.ignite.configuration.IgniteConfiguration">
+        
+        <property name="clientMode" value="false" />
 
-        <ns0:property name="dataStorageConfiguration">
-            <ns0:bean class="org.apache.ignite.configuration.DataStorageConfiguration">
-                <ns0:property name="defaultDataRegionConfiguration">
-                    <ns0:bean class="org.apache.ignite.configuration.DataRegionConfiguration">
-                        
-                        <ns0:property name="persistenceEnabled" value="true" />
-                    </ns0:bean>
-                </ns0:property>
+        
+        <property name="workDirectory" value="/ignite/work" />
+
+        
+        <property name="dataStorageConfiguration">
+            <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
 
                 
-                <ns0:property name="walPath" value="/ignite/wal" />
-                <ns0:property name="walArchivePath" value="/ignite/walarchive" />
-            </ns0:bean>
+                <property name="walPath" value="/ignite/wal" />
+            <property name="defaultDataRegionConfiguration">
+                    <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                        
+                        <property name="persistenceEnabled" value="true" />
+                    </bean>
+                </property>
 
-        </ns0:property>
+                
+                <property name="walArchivePath" value="/ignite/walarchive" />
+            </bean>
 
-        <ns0:property name="discoverySpi">
-            <ns0:bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
-                <ns0:property name="ipFinder">
-                    <ns0:bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.kubernetes.TcpDiscoveryKubernetesIpFinder">
-                        <ns0:constructor-arg>
-                            <ns0:bean class="org.apache.ignite.kubernetes.configuration.KubernetesConnectionConfiguration">
+        </property>
+
+        <property name="discoverySpi">
+            <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+                <property name="ipFinder">
+                    <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.kubernetes.TcpDiscoveryKubernetesIpFinder">
+                        <constructor-arg>
+                            <bean class="org.apache.ignite.kubernetes.configuration.KubernetesConnectionConfiguration">
                                 
-                                <ns0:property name="namespace" value="ignite" />
-                                <ns0:property name="serviceName" value="ignite-service" />
-                            </ns0:bean>
-                        </ns0:constructor-arg>
-                    </ns0:bean>
-                </ns0:property>
-            </ns0:bean>
-        </ns0:property>
-    <ns0:property name="clientMode" value="false" />
+                                <property name="namespace" value="ignite" />
+                            <property name="serviceName" value="ignite-service" />
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </property>
+            </bean>
+        </property>
 
         
-        <ns0:property name="authenticationEnabled" value="true" />
+        <property name="cacheConfiguration">
+            <list>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="cacheMode" value="PARTITIONED" />
+                <property name="name" value="myCache" />
+                    <property name="backups" value="0" /> 
+                </bean>
+            </list>
+        </property>
+
+    <property name="authenticationEnabled" value="true" />
 
         
-        <ns0:property name="workDirectory" value="/ignite/work" />
+        <property name="communicationSpi">
+            <bean class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
+                <property name="localPort" value="47100" />
+                <property name="localPortRange" value="100" /> 
+            </bean>
+        </property>
 
         
-        <ns0:property name="cacheConfiguration">
-            <ns0:list>
-                <ns0:bean class="org.apache.ignite.configuration.CacheConfiguration">
-                    <ns0:property name="name" value="myCache" />
-                    <ns0:property name="cacheMode" value="PARTITIONED" />
-                    <ns0:property name="backups" value="0" /> 
-                </ns0:bean>
-            </ns0:list>
-        </ns0:property>
-
-        
-        <ns0:property name="communicationSpi">
-            <ns0:bean class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
-                <ns0:property name="localPort" value="47100" />
-                <ns0:property name="localPortRange" value="100" /> 
-            </ns0:bean>
-        </ns0:property>
-
-    </ns0:bean>
-</ns0:beans>
+        </bean>
+</beans>

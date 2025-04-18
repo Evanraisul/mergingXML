@@ -1,92 +1,97 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Check if two files are provided
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 default-config.xml custom-config.xml"
-    exit 1
-fi
+# merge_configs.sh
+# Merges two Spring XML ignite configurations (default + custom) into one merged.xml
 
-file1="$1"
-file2="$2"
+set -euo pipefail
 
+DEFAULT_CFG="default-config.xml"
+CUSTOM_CFG="custom-config.xml"
+OUTPUT_CFG="merged.xml"
 
-
-# Use Python to merge the XML files
-python3 - <<END
+# Inline Python merge logic
+python3 - <<PYTHON
 import xml.etree.ElementTree as ET
+import sys
 
-def merge_elements(element1, element2):
-    # Iterate over each child in element2
-    for child2 in list(element2):
-        found = False
-        # Check each child in element1
-        for child1 in list(element1):
-            if child2.tag == child1.tag:
-                # Check for 'name' attribute match
-                if 'name' in child2.attrib and 'name' in child1.attrib:
-                    if child2.attrib['name'] == child1.attrib['name']:
-                        element1.remove(child1)
-                        element1.append(child2)
-                        found = True
-                        break
-                # Check for 'class' attribute match
-                elif 'class' in child2.attrib and 'class' in child1.attrib:
-                    if child2.attrib['class'] == child1.attrib['class']:
-                        element1.remove(child1)
-                        element1.append(child2)
-                        found = True
-                        break
-                # Replace if same tag and no name/class
-                else:
-                    element1.remove(child1)
-                    element1.append(child2)
-                    found = True
-                    break
-        if not found:
-            element1.append(child2)
+# Register default namespace
+NS = 'http://www.springframework.org/schema/beans'
+ET.register_namespace('', NS)
 
-# Parse the input files
-tree1 = ET.parse('$file1')
-root1 = tree1.getroot()
-tree2 = ET.parse('$file2')
-root2 = tree2.getroot()
-
-# Namespace mapping
-ns = {'beans': 'http://www.springframework.org/schema/beans'}
-
-# Find the IgniteConfiguration beans
-config_xpath = ".//beans:bean[@class='org.apache.ignite.configuration.IgniteConfiguration']"
-config1 = root1.find(config_xpath, ns)
-config2 = root2.find(config_xpath, ns)
-
-if config1 is None or config2 is None:
-    print("Error: Could not find IgniteConfiguration bean in one of the files.")
-    exit(1)
-
-# Merge properties from config2 into config1
-for prop2 in config2.findall('beans:property', ns):
-    prop_name = prop2.get('name')
-    prop1 = config1.find(f"beans:property[@name='{prop_name}']", ns)
-    if prop1 is None:
-        # Add the entire property from config2
-        config1.append(prop2)
-    else:
-        # Check if prop2 has no children (leaf node)
-        if len(prop2) == 0:
-            # Replace the entire property
-            config1.remove(prop1)
-            config1.append(prop2)
+# Recursive merge of child elements
+def merge_elements(target, source):
+    for child_src in source:
+        tag_src = child_src.tag
+        name_src = child_src.get('name')
+        print(name_src)
+        class_src = child_src.get('class')
+        print(class_src)
+        match = None
+        for child_tgt in target:
+            if child_tgt.tag != tag_src:
+                continue
+            if name_src and child_tgt.get('name') == name_src:
+                print(name_src)
+                match = child_tgt
+                break
+            if class_src and child_tgt.get('class') == class_src:
+                print(class_src)
+                match = child_tgt
+                break
+            if not name_src and not class_src:
+                print(name_src)
+                match = child_tgt
+                break
+        if match is None:
+            target.append(child_src)
+            print(child_src)
         else:
-            # Merge child elements
-            merge_elements(prop1, prop2)
+            if list(child_src):
+                merge_elements(match, child_src)
+            else:
+                idx = list(target).index(match)
+                print(child_src)
+                print(match)
+                target.remove(match)
+                target.insert(idx, child_src)
 
-# Write the merged XML
-tree1.write('merged.xml', encoding='UTF-8', xml_declaration=True)
-END
+# Merge two IgniteConfiguration beans
+def merge_configs(default_file, custom_file, output_file):
+    tree_def = ET.parse(default_file)
+    tree_cust = ET.parse(custom_file)
+    root_def = tree_def.getroot()
+    root_cust = tree_cust.getroot()
 
-if [ $? -eq 0 ]; then
-    echo "Merged XML written to merged.xml"
-else
-    echo "Error merging XML files"
-    exit 1
-fi
+    xpath = f".//{{{NS}}}bean[@class='org.apache.ignite.configuration.IgniteConfiguration']"
+    cfg_def = root_def.find(xpath)
+    cfg_cust = root_cust.find(xpath)
+    if cfg_def is None or cfg_cust is None:
+        print("Error: IgniteConfiguration bean not found.", file=sys.stderr)
+        sys.exit(1)
+
+    # Merge properties
+    for prop_cust in cfg_cust.findall(f"{{{NS}}}property"):
+        print(prop_cust)
+        name = prop_cust.get('name')
+        print(name)
+        prop_def = cfg_def.find(f"{{{NS}}}property[@name='{name}']")
+        print(prop_def)
+        if prop_def is None:
+            cfg_def.append(prop_cust)
+        else:
+            if list(prop_cust):
+                merge_elements(prop_def, prop_cust)
+            else:
+                idx = list(cfg_def).index(prop_def)
+                print(idx)
+                cfg_def.remove(prop_def)
+                cfg_def.insert(idx, prop_cust)
+
+    # Write output
+    tree_def.write(output_file, encoding='UTF-8', xml_declaration=True)
+
+# Execute merge using variables from the parent script
+merge_configs("$DEFAULT_CFG", "$CUSTOM_CFG", "$OUTPUT_CFG")
+PYTHON
+
+echo "Merged XML written to $OUTPUT_CFG"

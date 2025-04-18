@@ -9,11 +9,8 @@
         <!-- For this Ignite nodes will run on Server Mode, not in Client Mode -->
         <property name="clientMode" value="false"/>
 
-        <!-- For this authentication will be enabled -->
+        <!-- For this authentication will be enable -->
         <property name="authenticationEnabled" value="true"/>
-
-        <!-- Work Directory -->
-        <property name="workDirectory" value="/ignite/work"/>
 
         <!-- Storage Configuration -->
         <property name="dataStorageConfiguration">
@@ -26,7 +23,6 @@
                 </property>
 
                 <!-- Wal & WalArchive -->
-                <property name="walPath" value="/ignite/wal"/>
                 <property name="walArchivePath" value="/ignite/walarchive"/>
             </bean>
 
@@ -39,7 +35,6 @@
                         <constructor-arg>
                             <bean class="org.apache.ignite.kubernetes.configuration.KubernetesConnectionConfiguration">
                                 <!-- Namespace & Service Name must be equal -->
-                                <property name="namespace" value="ignite" />
                                 <property name="serviceName" value="ignite-service" />
                             </bean>
                         </constructor-arg>
@@ -48,23 +43,22 @@
             </bean>
         </property>
 
-        <!-- Cache Configuration -->
-        <property name="cacheConfiguration">
-            <list>
-                <bean class="org.apache.ignite.configuration.CacheConfiguration">
-                    <property name="name" value="myCache"/>
-                    <property name="cacheMode" value="PARTITIONED"/>
-                    <property name="backups" value="0"/> <!-- Number of backup copies -->
-                </bean>
-            </list>
-        </property>
-
         <!-- Communication SPI -->
         <property name="communicationSpi">
             <bean class="org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi">
                 <property name="localPort" value="47100"/>
                 <property name="localPortRange" value="100"/> <!-- Range of ports (47100-47200) -->
             </bean>
+        </property>
+
+        <!-- Cache Configuration -->
+        <property name="cacheConfiguration">
+            <list>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="myCache"/>
+                    <property name="backups" value="0"/> <!-- Number of backup copies -->
+                </bean>
+            </list>
         </property>
 
     </bean>
